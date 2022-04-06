@@ -6,111 +6,247 @@ import matplotlib.pyplot as plt
 import glob
 import shutil
 from tensorboard.plugins.hparams import api as hp
+import logging
+import json
+import argparse
 
 #---
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, Activation, BatchNormalization, DepthwiseConv2D, AveragePooling2D
-from sklearn.metrics import classification_report, confusion_matrix,roc_curve,auc, roc_auc_score,precision_recall_curve
-from sklearn.metrics import PrecisionRecallDisplay,RocCurveDisplay,ConfusionMatrixDisplay
+from tensorflow.keras.layers import Conv2D, Flatten, Dense, Dropout, Activation, BatchNormalization, DepthwiseConv2D, AveragePooling2D
+from sklearn.metrics import classification_report, confusion_matrix,roc_curve,auc, roc_auc_score,precision_recall_curve, accuracy_score
+from sklearn.metrics import PrecisionRecallDisplay,ConfusionMatrixDisplay
+#Hyperparamters to visualize in tensorboard
+HP_EPOCHS = hp.HParam("epochs", hp.IntInterval(1, 150))
+HP_BATCH_SIZE = hp.HParam("batch-size", hp.Discrete([64, 128, 256, 512]))
+HP_LR = hp.HParam("learning-rate", hp.RealInterval(0.0, 1.0))
 
-job_name = json.loads(os.environ.get("SM_TRAINING_ENV"))["job_name"]
-        logs_dir = "{}/{}".format(args.tf_logs_path, job_name)
+METRIC_ACCURACY = "accuracy"
+
+def main(args):
+    # Initializing TensorFlow summary writer
+    job_name = json.loads(os.environ.get("SM_TRAINING_ENV"))["job_name"]
+    logs_dir = "{}/{}".format(args.tf_logs_path, job_name)
     logging.info("Writing TensorBoard logs to {}".format(logs_dir))
     tf_writer = tf.summary.create_file_writer(logs_dir)
     tf_writer.set_as_default()
 
+    # Configuration of hyperparameters to visualize in TensorBoard
+    hp.hparams_config(
+        hparams=[HP_EPOCHS, HP_BATCH_SIZE, HP_LR, HP_OPTIMIZER],
+        metrics=[hp.Metric(METRIC_ACCURACY, display_name="Accuracy")],
+    )
+
+    hparams = {
+        HP_EPOCHS: args.epochs,
+        HP_BATCH_SIZE: args.batch_size,
+        HP_LR: args.learning_rate,
+        HP_OPTIMIZER: args.optimizer,
+    }
+
+    # Importing datasets
+    
+    model = Sequential()
+
+    model.add(Conv2D(filters = 32,kernel_size = 3, padding = "same", input_shape = (IMG_SHAPE, IMG_SHAPE, 3)), strides = 2)
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+
+    model.add(DepthwiseConv2D(kernel_size = 3, strides =1, padding = 'same'))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(Conv2D(filters = 64, kernel_size = 1, padding = "same", strides = 1))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+
+    model.add(DepthwiseConv2D(kernel_size = 3, strides =2, padding = 'same'))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(Conv2D(filters = 128, kernel_size = 1, padding = "same", strides = 1))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+
+    model.add(DepthwiseConv2D(kernel_size = 3, strides =1, padding = 'same'))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(Conv2D(filters = 128, kernel_size = 1, padding = "same", strides = 1))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+
+    model.add(DepthwiseConv2D(kernel_size = 3, strides =2, padding = 'same'))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(Conv2D(filters = 256, kernel_size = 1, padding = "same", strides = 1))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+
+    model.add(DepthwiseConv2D(kernel_size = 3, strides =1, padding = 'same'))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(Conv2D(filters = 256, kernel_size = 1, padding = "same", strides = 1))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+
+    model.add(DepthwiseConv2D(kernel_size = 3, strides =2, padding = 'same'))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(Conv2D(filters = 512, kernel_size = 1, padding = "same", strides = 1))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+
+
+    #Four round blocks, MobileNet has five instead
+    model.add(DepthwiseConv2D(kernel_size = 3, strides =1, padding = 'same'))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(Conv2D(filters = 512, kernel_size = 1, padding = "same", strides = 1))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+
+    model.add(DepthwiseConv2D(kernel_size = 3, strides =1, padding = 'same'))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(Conv2D(filters = 512, kernel_size = 1, padding = "same", strides = 1))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+
+    model.add(DepthwiseConv2D(kernel_size = 3, strides =1, padding = 'same'))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(Conv2D(filters = 512, kernel_size = 1, padding = "same", strides = 1))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+
+    model.add(DepthwiseConv2D(kernel_size = 3, strides =1, padding = 'same'))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(Conv2D(filters = 512, kernel_size = 1, padding = "same", strides = 1))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+
+    #After 4 blocks
+    model.add(DepthwiseConv2D(kernel_size = 3, strides =2, padding = 'same'))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(Conv2D(filters = 1024, kernel_size = 1, padding = "same", strides = 1))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+
+    model.add(DepthwiseConv2D(kernel_size = 3, strides =2, padding = 'same'))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(Conv2D(filters = 1024, kernel_size = 1, padding = "same", strides = 1))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+
+    model.add(AveragePooling2D(7,7), strides=(1,1))
+
+    model.add(Flatten())
+    model.add(Dense(2, activation = 'softmax'))
+
+#--- [markdown]
+# ### Places to Test
+# 1. Overfit first so that you see maximum number of epoch. (Overfits above 60)
+# 2. After overfitting, find the epoch where you want to reduce the learning rate. (This is 60 epoch)
+# 3. Test with discarding dropout and use batch normalization. (Performance Accuracy) **Test this
+# 4. Add a Dense layer of 128. (Accuracy) //No need, parameters already high.
+# 5. MaxPooling to default stride (Accuracy) //Will increase computation.
+# 6. After finding best epoch, use reduce early and stop. (Generalization)// No need, found the optimum range at about 60 epoch.
+# 7. Convert to depthwise separable convolution and increase layers.
+
 #---
-_URL = 'https://fire-net-datasets.s3.amazonaws.com/Training_Dataset.zip'
+    model.summary()
 
-zip_file = tf.keras.utils.get_file(origin=_URL,extract=True)  
-#This will ge the file and extract it to a directory and extract to /Training Dataset
-
-#---
-print(os.path.dirname(zip_file))
-#This function returns the directory of the extracted folder without the extracted folder inclusive
-
-#---
-base_dir = os.path.join(os.path.dirname(zip_file), 'Training Dataset')
-#A good way to add the directory of the extracted folder and also the extracted folder itself.
-print(base_dir)
-
-#---
-LOG_DIR = os.path.join(os.getcwd(), "Fire_Detection/logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+#Mobile Net had 2 million parameters
 
 
-#---
-classes = ['Fire', 'NoFire']
 
-#---
-for cl in classes:
-  img_path = os.path.join(base_dir, cl)
-  images = glob.glob(img_path + '/*.jpg')
-  print("{}: {} Images".format(cl, len(images)))
-  train, val = images[:round(len(images)*0.7)], images[round(len(images)*0.7):]
+    model.compile(optimizer="adam",
+                    loss=tf.keras.losses.sparse_categorical_crossentropy,
+                    metrics=['accuracy'])
+    callbacks = []
+    # TensorBoard callback to collect standard metrics, profiling informationg, and compute activation and weight histograms for the layers
+    callbacks.append(
+        TensorBoard(log_dir=logs_dir, update_freq="epoch", histogram_freq=1, profile_batch="5,35")
+    )
+    # TensorBoard logging hyperparameter
+    callbacks.append(hp.KerasCallback(writer=logs_dir, hparams=hparams, trial_id=job_name))
 
-  for t in train:
-    if not os.path.exists(os.path.join(base_dir, 'train', cl)):
-      os.makedirs(os.path.join(base_dir, 'train', cl))
-    shutil.move(t, os.path.join(base_dir, 'train', cl))
+    # Train the model
+    model.fit(
+        train_data_gen,
+        epochs=args.epochs,
+        batch_size=args.batch_size,
+        validation_data=validation_data_gen,
+        callbacks=callbacks,
+    )
 
-  for v in val:
-    if not os.path.exists(os.path.join(base_dir, 'val', cl)):
-      os.makedirs(os.path.join(base_dir, 'val', cl))
-    shutil.move(v, os.path.join(base_dir, 'val', cl))
+    # Saving trained model
+    model.save(args.model_output + "/1")
 
-#---
-train_dir = os.path.join(base_dir, 'train')
-val_dir = os.path.join(base_dir, 'val')
+    # Converting validation dataset to numpy array
+    validation_array = np.array(list(validation_data_gen.unbatch().take(-1).as_numpy_iterator()))
+    test_x = np.stack(validation_array[:, 0])
+    test_y = np.stack(validation_array[:, 1])
 
-#---
-batch_size = 100
-IMG_SHAPE = 128
+    # Use the model to predict the labels
+    test_predictions = model.predict(test_x)
+    test_y_pred = np.argmax(test_predictions, axis=1)
+    test_y_true = np.argmax(test_y, axis=1)
 
-#---
-image_gen_train = ImageDataGenerator(rescale = 1./255,
-                    zoom_range = 0.5,
-                    rotation_range=45,
-                    horizontal_flip=True,
-                    width_shift_range=0.15,
-                    height_shift_range=0.15,
-                    shear_range=0.2)
-train_data_gen = image_gen_train.flow_from_directory(batch_size=batch_size,
-                                            directory=train_dir,
-                                            shuffle=True,
-                                            target_size=(IMG_SHAPE,IMG_SHAPE),
-                                            class_mode='binary')
-print(train_data_gen.samples)
-print(train_data_gen.n)
-train_data_num = train_data_gen.samples
-#Find our size of datasets. each
+    # Evaluating model accuracy and logging it as a scalar for TensorBoard hyperparameter visualization.
+    accuracy = accuracy_score(test_y_true, test_y_pred)
+    tf.summary.scalar(METRIC_ACCURACY, accuracy, step=1)
+    logging.info("Test accuracy:{}".format(accuracy))
 
-#---
-# This function will plot images in the form of a grid with 1 row and 5 columns where images are placed in each column.
-def plotImages(images_arr):
-    fig, axes = plt.subplots(1, 5, figsize=(20,20))
-    axes = axes.flatten()
-    for img, ax in zip( images_arr, axes):
-        ax.imshow(img)
-    plt.tight_layout()
-    plt.show()
+    # Calculating confusion matrix and logging it as an image for TensorBoard visualization.
+    cm_image = tb_plot_confusion_matrix(test_y_true, test_y_pred)
+    tf.summary.image("Confusion Matrix", cm_image, step=1)
+    tf_writer.flush()
 
-#---
-augmented_images = [train_data_gen[0][0][0] for i in range(5)]
-plotImages(augmented_images)
 
-#---
-image_gen_val = ImageDataGenerator(rescale=1./255)
-val_data_gen = image_gen_val.flow_from_directory(batch_size=batch_size,
-                            directory=val_dir,
-                            target_size=(IMG_SHAPE,IMG_SHAPE),
-                            class_mode='binary',
-                            shuffle = False)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
 
-#---
-print(val_data_gen.samples)
-print(val_data_gen.n)
-val_data_num = val_data_gen.samples
+    parser.add_argument(
+        "--train",
+        type=str,
+        required=False,
+        default=os.environ.get("SM_CHANNEL_TRAIN"),
+        help="The directory where the CIFAR-10 input data is stored.",
+    )
+    parser.add_argument(
+        "--validation",
+        type=str,
+        required=False,
+        default=os.environ.get("SM_CHANNEL_VALIDATION"),
+        help="The directory where the CIFAR-10 input data is stored.",
+    )
+    parser.add_argument(
+        "--model-output",
+        type=str,
+        default=os.environ.get("SM_MODEL_DIR"),
+        help="The directory where the trained model will be stored.",
+    )
+    parser.add_argument(
+        "--tf-logs-path",
+        type=str,
+        required=True,
+        help="Path used for writing TensorFlow logs. Can be S3 bucket.",
+    )
+    parser.add_argument("--learning-rate", type=float, default=0.01, help="Initial learning rate.")
+    parser.add_argument(
+        "--epochs", type=int, default=10, help="The number of steps to use for training."
+    )
+    parser.add_argument("--batch-size", type=int, default=128, help="Batch size for training.")
+    parser.add_argument(
+        "--data-config", type=json.loads, default=os.environ.get("SM_INPUT_DATA_CONFIG")
+    )
+    parser.add_argument("--optimizer", type=str.lower, default="adam")
+    parser.add_argument("--model_dir", type=str)
+
+    args = parser.parse_args()
+    main(args)
 
 def tb_plot_confusion_matrix(y_true, y_pred):
     # Calculate the confusion matrix.
@@ -153,162 +289,7 @@ def tb_plot_confusion_matrix(y_true, y_pred):
 
     return cm_image
 
-#Hyperparamters to visualize in tensorboard
-HP_EPOCHS = hp.HParam("epochs", hp.IntInterval(1, 150))
-HP_BATCH_SIZE = hp.HParam("batch-size", hp.Discrete([64, 128, 256, 512]))
-HP_LR = hp.HParam("learning-rate", hp.RealInterval(0.0, 1.0))
-
-METRIC_ACCURACY = "accuracy"
-
 #---
-model = Sequential()
-
-model.add(Conv2D(filters = 32,kernel_size = 3, padding = "same", input_shape = (IMG_SHAPE, IMG_SHAPE, 3)), strides = 2)
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-
-model.add(DepthwiseConv2D(kernel_size = 3, strides =1, padding = 'same'))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-model.add(Conv2D(filters = 64, kernel_size = 1, padding = "same", strides = 1))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-
-model.add(DepthwiseConv2D(kernel_size = 3, strides =2, padding = 'same'))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-model.add(Conv2D(filters = 128, kernel_size = 1, padding = "same", strides = 1))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-
-model.add(DepthwiseConv2D(kernel_size = 3, strides =1, padding = 'same'))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-model.add(Conv2D(filters = 128, kernel_size = 1, padding = "same", strides = 1))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-
-model.add(DepthwiseConv2D(kernel_size = 3, strides =2, padding = 'same'))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-model.add(Conv2D(filters = 256, kernel_size = 1, padding = "same", strides = 1))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-
-model.add(DepthwiseConv2D(kernel_size = 3, strides =1, padding = 'same'))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-model.add(Conv2D(filters = 256, kernel_size = 1, padding = "same", strides = 1))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-
-model.add(DepthwiseConv2D(kernel_size = 3, strides =2, padding = 'same'))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-model.add(Conv2D(filters = 512, kernel_size = 1, padding = "same", strides = 1))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-
-
-#Four round blocks, MobileNet has five instead
-model.add(DepthwiseConv2D(kernel_size = 3, strides =1, padding = 'same'))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-model.add(Conv2D(filters = 512, kernel_size = 1, padding = "same", strides = 1))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-
-model.add(DepthwiseConv2D(kernel_size = 3, strides =1, padding = 'same'))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-model.add(Conv2D(filters = 512, kernel_size = 1, padding = "same", strides = 1))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-
-model.add(DepthwiseConv2D(kernel_size = 3, strides =1, padding = 'same'))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-model.add(Conv2D(filters = 512, kernel_size = 1, padding = "same", strides = 1))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-
-model.add(DepthwiseConv2D(kernel_size = 3, strides =1, padding = 'same'))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-model.add(Conv2D(filters = 512, kernel_size = 1, padding = "same", strides = 1))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-
-#After 4 blocks
-model.add(DepthwiseConv2D(kernel_size = 3, strides =2, padding = 'same'))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-model.add(Conv2D(filters = 1024, kernel_size = 1, padding = "same", strides = 1))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-
-model.add(DepthwiseConv2D(kernel_size = 3, strides =2, padding = 'same'))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-model.add(Conv2D(filters = 1024, kernel_size = 1, padding = "same", strides = 1))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-
-model.add(AveragePooling2D(7,7), strides=(1,1))
-
-model.add(Flatten())
-model.add(Dense(2, activation = 'softmax'))
-
-#--- [markdown]
-# ### Places to Test
-# 1. Overfit first so that you see maximum number of epoch. (Overfits above 60)
-# 2. After overfitting, find the epoch where you want to reduce the learning rate. (This is 60 epoch)
-# 3. Test with discarding dropout and use batch normalization. (Performance Accuracy) **Test this
-# 4. Add a Dense layer of 128. (Accuracy) //No need, parameters already high.
-# 5. MaxPooling to default stride (Accuracy) //Will increase computation.
-# 6. After finding best epoch, use reduce early and stop. (Generalization)// No need, found the optimum range at about 60 epoch.
-# 7. Convert to depthwise separable convolution and increase layers.
-
-#---
-model.summary()
-
-#Mobile Net had 2 million parameters
-
-
-
-#---
-EPOCHS = 100
-model.compile(optimizer="adam",
-                loss=tf.keras.losses.sparse_categorical_crossentropy,
-                metrics=['accuracy'])
-
-history = model.fit(train_data_gen,epochs= EPOCHS,
-                steps_per_epoch = int(np.ceil(train_data_gen.n / float(batch_size))),
-                validation_data = val_data_gen,
-                validation_steps = int(np.ceil(val_data_gen.n / float(batch_size))))
-
-#---
-acc = history.history['accuracy']
-val_acc = history.history['val_accuracy']
-
-loss = history.history['loss']
-val_loss = history.history['val_loss']
-
-epochs_range = range(EPOCHS)
-
-plt.figure(figsize=(20, 8))
-plt.subplot(1, 2, 1)
-plt.plot(epochs_range, acc, label='Training Accuracy')
-plt.plot(epochs_range, val_acc, label='Validation Accuracy')
-plt.legend(loc='lower right')
-plt.title('Training and Validation Accuracy')
-
-plt.subplot(1, 2, 2)
-plt.plot(epochs_range, loss, label='Training Loss')
-plt.plot(epochs_range, val_loss, label='Validation Loss')
-plt.legend(loc='upper right')
-plt.title('Training and Validation Loss')
-plt.show()
 
 
 #---
