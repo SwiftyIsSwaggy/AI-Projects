@@ -216,6 +216,8 @@ def tb_plot_confusion_matrix(y_true, y_pred):
     plt.ylabel("True label")
     plt.xlabel("Predicted label")
 
+    
+
     # Save the plot to a PNG in memory.
     buf = io.BytesIO()
     plt.savefig(buf, format="png")
@@ -287,6 +289,9 @@ def main(args):
     accuracy = sklearn.metrics.accuracy_score(y_true, y_pred)
     tf.summary.scalar(METRIC_ACCURACY, accuracy, step=1)
     logging.info("Test accuracy:{}".format(accuracy))
+    
+    target_names = ['Fire', 'No Fire']
+    tf.summary.text("Classification Report",sklearn.metrics.classification_report(y_true, y_pred, target_names=target_names), step=0)
 
     # Calculating confusion matrix and logging it as an image for TensorBoard visualization.
     cm_image = tb_plot_confusion_matrix(y_true, y_pred)
