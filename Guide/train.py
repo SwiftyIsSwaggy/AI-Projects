@@ -53,7 +53,7 @@ if __name__ == '__main__':
     parser.add_argument('--train', type=str, default = os.environ.get('SM_CHANNEL_TRAINING'))
     
     args, _ = parser.parse_known_args()
-    local_output_dur = args.sm_model_dir
+    local_output_dir = args.sm_model_dir
     local_root_dir = args.train
     batch_size = args.batch_size
                         
