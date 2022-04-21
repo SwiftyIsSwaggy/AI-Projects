@@ -14,7 +14,7 @@ import tensorflow_io as tfio
 from tensorboard.plugins.hparams import api as hp
 from tensorflow import keras
 from tensorflow.keras import backend as K
-from tensorflow.keras.callbacks import TensorBoard
+from tensorflow.keras.callbacks import TensorBoard, LearningRateScheduler
 
 from tensorflow.keras.optimizers import SGD, Adam, RMSprop
 
@@ -260,7 +260,19 @@ def main(args):
     train_gen, val_gen = create_data_generators(local_root_dir, batch_size)
 
     model = create_model(args.learning_rate, args.optimizer)
-
+    
+    def scheduler(epoch, lr):
+        if epoch < 10:
+            return 0.001
+        elif epoch < 30:
+            return 0.0005
+        elif epoch < 50:
+            return 0.00025
+        elif epoch < 60:
+            return 0.0001
+        else:
+            return 0.00005
+        
     callbacks = []
     # TensorBoard callback to collect standard metrics, profiling informationg, and compute activation and weight histograms for the layers
     callbacks.append(
@@ -268,6 +280,7 @@ def main(args):
     )
     # TensorBoard logging hyperparameter
     callbacks.append(hp.KerasCallback(writer=logs_dir, hparams=hparams, trial_id=job_name))
+    callbacks.append(LearningRateScheduler(scheduler))
     
     model.fit(
         train_gen,
