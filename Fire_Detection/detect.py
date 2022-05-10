@@ -8,7 +8,7 @@ import tensorflow_hub as hub
 
 # py -3.9 "c:/Users/hp/OneDrive/Code/AI Projects/Fire_Detection/detect.py"
 # loading the stored model from file
-path = 'Fire_Detection\\final_model\\'
+path = 'Fire_Detection\\final_model\\1\\'
 
 model = load_model(
   path,
@@ -16,7 +16,7 @@ model = load_model(
 
 #model.summary()
 
-cap = cv2.VideoCapture('Fire_Detection\\videos\\fireVid_025.avi')
+cap = cv2.VideoCapture('C:\\Users\\hp\\Downloads\\FireVid\\FireVid\\videos\\fireVid_025.avi')
 time.sleep(2)
 
 if cap.isOpened(): # try to get the first frame
