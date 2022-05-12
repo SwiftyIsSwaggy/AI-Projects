@@ -17,7 +17,7 @@ output_index = interpreter.get_output_details()[0]["index"]
 
 video_path = '/home/pi/Documents/Code/Fire_Detection/videos/fireVid_025.avi'
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(video_path)
 time.sleep(2)
 
 if cap.isOpened(): # try to get the first frame
@@ -32,15 +32,10 @@ IMG_SIZE = 128
 #for i in range(2500):
 #cap.read()
 
-
-##If prob greater than 70 increase count 70, send a message if it has been above 70 for a minute
-#increase count_70 until it is 60*15 (15 frames per second)
-
 while(1):
     rval, image = cap.read()
     if rval==True:
         orig = image.copy()
-        #original resolution is 640 * 480
         
         tic = time.time()
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
