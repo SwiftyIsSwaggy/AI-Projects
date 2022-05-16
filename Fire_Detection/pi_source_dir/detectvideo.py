@@ -29,9 +29,13 @@ else:
 
 IMG_SIZE = 128
 
+frame_cnt_less_70 = 0
+frame_cnt_above_70 =0 #but below 90
+frame_cnt_above_90 =0 
+
 #for i in range(2500):
 #cap.read()
-
+ding= time.time()
 while(1):
     rval, image = cap.read()
     if rval==True:
@@ -46,10 +50,38 @@ while(1):
         interpreter.set_tensor(input_index, image)
         interpreter.invoke()
         fire_prob = interpreter.get_tensor(output_index)[0][0] * 100
+       
+        
+        if round(fire_prob) < 70:
+            print("below 70")
+        elif round(fire_prob) < 90:
+            print("between 70 and 89")
+            frame_cnt_above_70+=1
+            dong=time.time()
+            time_since_last_alert = dong - ding
+            if (time_since_last_alert > 30) or (frame_cnt_above_70>400):
+                print("Send alert about reaching 70")
+                frame_cnt_above_70=0
+                ding= time.time()
+                print("Alert sent at Seconds:",str(round(ding)), "with fire prob",str(fire_prob))
+                #Send Notification and Picture to Object Model
+        elif round(fire_prob) < 101:
+            print("Danger Zone: between 91 and 100")
+            frame_cnt_above_90+=1
+            dong=time.time()
+            time_since_last_alert = dong - ding
+            #Send fire alarm
+            if (time_since_last_alert > 30) or (frame_cnt_above_90>150):
+                print("Send alert about reaching 90")
+                frame_cnt_above_90=0
+                ding= time.time()
+                print("Alert sent at Seconds:",str(round(ding)), "with fire prob",str(fire_prob))
+                #Send Notification and Picture to Object Model
+        else:
+            print("System Error")
+
         toc = time.time()
         
-        print(tic)
-        print(toc)
         print("Time taken = ", toc - tic)
         print("FPS: ", 1 / np.float64(toc - tic))
         print("Fire Probability: ", fire_prob)
@@ -71,4 +103,3 @@ while(1):
             break
 cap.release()
 cv2.destroyAllWindows()
-end = time.time()
