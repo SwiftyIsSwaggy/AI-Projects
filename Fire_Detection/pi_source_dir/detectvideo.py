@@ -68,7 +68,14 @@ while(1):
                     ding= time.time()
                     print("Alert sent at Seconds:",str(round(ding)), "with fire prob",str(fire_prob))
                 #Send Notification and Picture to Object Model
-                #Lambda function to invoke API, get response, send item to S3, and also notify in SNS and on SMS.
+                #invoke API
+                input_tensor = image
+                input_data = {'instances': input_tensor.tolist()}
+                headers = {"content-type":"application/json"}
+                json_response = requests.post('https://p5dv58hpub.execute-api.us-east1.amazonaws.com/InitialStage/objectdataprediction',data=data,headers = headers)
+                result = json.loads(json_response.text)
+                print(result['predictions'][0]['detection_classes'])
+                print(result['predictions'][0]['detection_scores'])
         elif round(fire_prob) < 101:
             print("Danger Zone: between 91 and 100")
             frame_cnt_above_90+=1
