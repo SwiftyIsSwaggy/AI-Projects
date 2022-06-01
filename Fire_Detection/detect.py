@@ -17,6 +17,7 @@ model = load_model(
 #model.summary()
 
 cap = cv2.VideoCapture('C:\\Users\\hp\\Downloads\\FireVid\\FireVid\\videos\\fireVid_025.avi')
+
 time.sleep(2)
 
 if cap.isOpened(): # try to get the first frame
@@ -30,6 +31,7 @@ IMG_SIZE = 128
 
 #for i in range(2500):
 #cap.read()
+#image = cv2.imread("path to image")
 
 while(1):
     rval, image = cap.read()

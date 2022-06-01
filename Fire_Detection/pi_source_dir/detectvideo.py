@@ -2,6 +2,7 @@ import tflite_runtime.interpreter as tflite
 import numpy as np
 import cv2
 import time
+import requests
 
 
 
@@ -51,6 +52,7 @@ while(1):
         interpreter.invoke()
         fire_prob = interpreter.get_tensor(output_index)[0][0] * 100
        
+
         
         if round(fire_prob) < 70:
             print("below 70")
@@ -59,35 +61,41 @@ while(1):
             frame_cnt_above_70+=1
             dong=time.time()
             time_since_last_alert = dong - ding
-            if (time_since_last_alert > 30) or (frame_cnt_above_70>400):
-                print("Send alert about reaching 70")
-                frame_cnt_above_70=0
-                ding= time.time()
-                print("Alert sent at Seconds:",str(round(ding)), "with fire prob",str(fire_prob))
+            if (time_since_last_alert > 30):
+                if (frame_cnt_above_70 > 300):
+                    print("Send alert about reaching 70")
+                    frame_cnt_above_70=0
+                    ding= time.time()
+                    print("Alert sent at Seconds:",str(round(ding)), "with fire prob",str(fire_prob))
                 #Send Notification and Picture to Object Model
+                #Lambda function to invoke API, get response, send item to S3, and also notify in SNS and on SMS.
         elif round(fire_prob) < 101:
             print("Danger Zone: between 91 and 100")
             frame_cnt_above_90+=1
             dong=time.time()
             time_since_last_alert = dong - ding
             #Send fire alarm
-            if (time_since_last_alert > 30) or (frame_cnt_above_90>150):
-                print("Send alert about reaching 90")
-                frame_cnt_above_90=0
-                ding= time.time()
-                print("Alert sent at Seconds:",str(round(ding)), "with fire prob",str(fire_prob))
-                #Send Notification and Picture to Object Model
+            if (time_since_last_alert > 30):
+                if (frame_cnt_above_90 > 100):
+                    print("Send alert about reaching 90")
+                    frame_cnt_above_90=0
+                    ding= time.time()
+                    print("Alert sent at Seconds:",str(round(ding)), "with fire prob",str(fire_prob))
+                    #Send Notification and Picture to Object Model
+                    #Lambda function to invoke API, get response, send item to S3,update in app and also notify in SNS and on SMS.
         else:
             print("System Error")
 
         toc = time.time()
         
+
         print("Time taken = ", toc - tic)
         print("FPS: ", 1 / np.float64(toc - tic))
         print("Fire Probability: ", fire_prob)
         print("Predictions: ",interpreter.get_tensor(output_index))
         print(image.shape)
         
+        #Put label showing time and hour
         label = "Fire Probability: " + str(round(fire_prob))+ "%"
         cv2.putText(orig, label, (10, 25),  cv2.FONT_HERSHEY_SIMPLEX,0.5, (0, 255, 0), 2)
         cv2.namedWindow('Detection Screen',cv2.WINDOW_NORMAL)
