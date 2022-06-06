@@ -3,8 +3,25 @@ import numpy as np
 import cv2
 import time
 import requests
+import json
+import datetime
+from machine import Pin
 
+    
 
+def invokeAPI(image, prob):
+    obj = datetime.datetime.now()
+    input_data = json.dumps({"instances":image.tolist()})
+    headers = {
+            "Content-Type":"application/json",
+            'Date': str(obj.date()),
+            'Time': str(obj.time()),
+            'Prob': str(prob),
+            'Location':"Raspberry-Pi Kitchen"
+        }
+    json_response = requests.post('https://p5dv58hpub.execute-api.us-east1.amazonaws.com/InitialStage/objectdataprediction',data=input_data,headers = headers)
+    result = json.loads(json_response.text)
+    return result
 
 # loading the stored model from file
 path = '/home/pi/Documents/Code/Fire_Detection/model.tflite'
@@ -17,6 +34,9 @@ input_index = interpreter.get_input_details()[0]["index"]
 output_index = interpreter.get_output_details()[0]["index"]
 
 video_path = '/home/pi/Documents/Code/Fire_Detection/videos/fireVid_025.avi'
+
+button = Pin(3, Pin.IN, Pin.PULL_UP)
+buzzer = Pin(11, Pin.OUT)
 
 cap = cv2.VideoCapture(video_path)
 time.sleep(2)
@@ -38,22 +58,20 @@ frame_cnt_above_90 =0
 #cap.read()
 ding= time.time()
 while(1):
+    if button.value() == 0:
+        print("button pressed")
+        buzzer.value(0)
     rval, image = cap.read()
     if rval==True:
         orig = image.copy()
-        
         tic = time.time()
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = cv2.resize(image, (IMG_SIZE, IMG_SIZE))
         image = (np.float32(image)) / 255
         image = np.expand_dims(image, axis=0)
-        
         interpreter.set_tensor(input_index, image)
         interpreter.invoke()
         fire_prob = interpreter.get_tensor(output_index)[0][0] * 100
-       
-
-        
         if round(fire_prob) < 70:
             print("below 70")
         elif round(fire_prob) < 90:
@@ -66,35 +84,32 @@ while(1):
                     print("Send alert about reaching 70")
                     frame_cnt_above_70=0
                     ding= time.time()
-                    print("Alert sent at Seconds:",str(round(ding)), "with fire prob",str(fire_prob))
-                #Send Notification and Picture to Object Model
-                #invoke API
-                input_tensor = image
-                input_data = {'instances': input_tensor.tolist()}
-                headers = {"content-type":"application/json"}
-                json_response = requests.post('https://p5dv58hpub.execute-api.us-east1.amazonaws.com/InitialStage/objectdataprediction',data=data,headers = headers)
-                result = json.loads(json_response.text)
-                print(result['predictions'][0]['detection_classes'])
-                print(result['predictions'][0]['detection_scores'])
+                    print("Alert sent at Seconds:",str(round(ding)),"after",time_since_last_alert,"seconds with fire prob",str(fire_prob))
+                    result = invokeAPI(image, fire_prob)
+                    print(result)
+                    print(result['predictions'][0]['detection_classes'])
+                    print(result['predictions'][0]['detection_scores'])
         elif round(fire_prob) < 101:
             print("Danger Zone: between 91 and 100")
             frame_cnt_above_90+=1
             dong=time.time()
-            time_since_last_alert = dong - ding
+            time_since_last_alert = dong - ding   
             #Send fire alarm
             if (time_since_last_alert > 30):
                 if (frame_cnt_above_90 > 100):
                     print("Send alert about reaching 90")
+                    buzzer.value(1)
                     frame_cnt_above_90=0
                     ding= time.time()
-                    print("Alert sent at Seconds:",str(round(ding)), "with fire prob",str(fire_prob))
+                    print("Alert sent at Seconds:",str(round(ding)),"after",time_since_last_alert, "seconds with fire prob",str(fire_prob))
+                    result = invokeAPI(image, fire_prob)
+                    print(result)
                     #Send Notification and Picture to Object Model
                     #Lambda function to invoke API, get response, send item to S3,update in app and also notify in SNS and on SMS.
         else:
             print("System Error")
 
         toc = time.time()
-        
 
         print("Time taken = ", toc - tic)
         print("FPS: ", 1 / np.float64(toc - tic))
