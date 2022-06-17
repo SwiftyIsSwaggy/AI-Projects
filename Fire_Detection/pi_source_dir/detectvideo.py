@@ -51,7 +51,7 @@ time.sleep(2)
 
 if cap.isOpened(): # try to get the first frame
     rval, frame = cap.read()
--else:
+else:
     rval = False
     print("Failed to get first frame")
 
